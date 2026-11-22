@@ -2,7 +2,7 @@
 
 Flying Survey là hệ thống mô phỏng điều khiển thiết bị bay khảo sát môi trường cho học phần IT4062. Dự án dùng C trên Ubuntu hoặc WSL chạy Ubuntu, TCP socket để trao đổi bản tin, `poll()` để xử lý nhiều kết nối trên server và SQLite để lưu dữ liệu.
 
-README này mô tả thiết kế dự kiến. Kho mã hiện chưa có mã nguồn hay `Makefile`. Các lệnh bên dưới là quy ước dự kiến cho bản demo.
+Server hiện có thể mở cổng TCP và lắng nghe. Các chức năng xử lý kết nối và demo ba chương trình được mô tả bên dưới theo thiết kế dự kiến.
 
 ## Ba chương trình
 
@@ -26,7 +26,18 @@ README này mô tả thiết kế dự kiến. Kho mã hiện chưa có mã ngu�
 - Server dùng socket không chặn và `poll()`. Mỗi kết nối có bộ đệm nhận để ghép khung bị chia qua nhiều lần `recv()` và tách các khung được nhận cùng lúc.
 - Mỗi kết nối có hàng đợi gửi và lưu vị trí đã gửi trong khung đầu hàng đợi. Server theo dõi `POLLOUT` khi còn dữ liệu và tiếp tục từ byte kế tiếp nếu `send()` chỉ ghi được một phần.
 
-## Môi trường và cách chạy dự kiến
+## Chạy server TCP
+
+Trong Ubuntu hoặc WSL với `build-essential` đã cài, chạy từ thư mục dự án.
+
+```bash
+make
+./bin/server --port 9000
+```
+
+`--port` nhận số từ 1 đến 65535. Server mặc định lắng nghe tại `127.0.0.1` và nhận địa chỉ IPv4 khác qua `--host`. Server in lỗi ra `stderr` và thoát với mã khác 0 nếu cổng đã được sử dụng. Dừng server bằng `Ctrl+C`.
+
+## Môi trường và cách chạy demo dự kiến
 
 Trong terminal Ubuntu hoặc WSL, mở thư mục dự án và cài công cụ biên dịch cùng thư viện phát triển SQLite.
 
