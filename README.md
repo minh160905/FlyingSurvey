@@ -26,6 +26,16 @@ Server hiện có thể mở cổng TCP và lắng nghe. Các chức năng xử 
 - Server dùng socket không chặn và `poll()`. Mỗi kết nối có bộ đệm nhận để ghép khung bị chia qua nhiều lần `recv()` và tách các khung được nhận cùng lúc.
 - Mỗi kết nối có hàng đợi gửi và lưu vị trí đã gửi trong khung đầu hàng đợi. Server theo dõi `POLLOUT` khi còn dữ liệu và tiếp tục từ byte kế tiếp nếu `send()` chỉ ghi được một phần.
 
+## Chạy cửa sổ đăng nhập Tkinter
+
+Cài Python 3 có Tkinter. Trên Ubuntu/WSL có môi trường đồ họa, có thể cài bằng `sudo apt install python3-tk` rồi chạy từ thư mục dự án.
+
+```bash
+python3 src/client/login.py
+```
+
+Trên Windows, dùng `python src/client/login.py`. Cửa sổ có tên đăng nhập, mật khẩu được che và nút Đăng nhập. Nhấn nút hoặc Enter để kiểm tra hai trường bắt buộc. Trường chỉ chứa khoảng trắng được xem là bỏ trống. Khi nhập đủ, cửa sổ hiển thị trạng thái kiểm tra dữ liệu. Chức năng xác thực với server đang chờ triển khai.
+
 ## Chạy server TCP
 
 Trong Ubuntu hoặc WSL với `build-essential` đã cài, chạy từ thư mục dự án.
