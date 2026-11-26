@@ -26,6 +26,24 @@ Server hiện có thể mở cổng TCP và lắng nghe. Các chức năng xử 
 - Server dùng socket không chặn và `poll()`. Mỗi kết nối có bộ đệm nhận để ghép khung bị chia qua nhiều lần `recv()` và tách các khung được nhận cùng lúc.
 - Mỗi kết nối có hàng đợi gửi và lưu vị trí đã gửi trong khung đầu hàng đợi. Server theo dõi `POLLOUT` khi còn dữ liệu và tiếp tục từ byte kế tiếp nếu `send()` chỉ ghi được một phần.
 
+## Bảng tài khoản SQLite
+
+Schema trong `db/schema.sql` tạo bảng `accounts` gồm `id` làm khóa chính, `username` với ràng buộc `NOT NULL UNIQUE` và `password_hash` với ràng buộc `NOT NULL`. Tên đăng nhập phân biệt chữ hoa/chữ thường theo mặc định của SQLite. Cột `password_hash` dành cho chuỗi băm chứa cả thuật toán, tham số và salt do phần đăng ký tạo ra.
+
+Khởi tạo tệp dữ liệu bằng SQLite CLI, có thể cài qua `sudo apt install sqlite3`.
+
+```bash
+sqlite3 flying-survey.db < db/schema.sql
+```
+
+Chạy kiểm thử schema từ thư mục dự án bằng Python 3.11 trở lên, trên Windows thay `python3` bằng `python`.
+
+```bash
+python3 -B -m unittest discover -s tests -v
+```
+
+Kiểm thử dùng SQLite trong bộ nhớ để xác nhận trùng tên bị từ chối, tên khác được chấp nhận và chạy lại schema giữ nguyên dữ liệu. Server sẽ cần nạp schema khi triển khai phần khởi tạo SQLite.
+
 ## Chạy cửa sổ đăng nhập Tkinter
 
 Cài Python 3 có Tkinter. Trên Ubuntu/WSL có môi trường đồ họa, có thể cài bằng `sudo apt install python3-tk` rồi chạy từ thư mục dự án.
