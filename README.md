@@ -47,6 +47,16 @@ make
 
 `--port` nhận số từ 1 đến 65535. Server mặc định lắng nghe tại `127.0.0.1` và nhận địa chỉ IPv4 khác qua `--host`. Server in lỗi ra `stderr` và thoát với mã khác 0 nếu cổng đã được sử dụng. Dừng server bằng `Ctrl+C`.
 
+## Chạy simulator TCP
+
+Sau khi chạy `make` và khởi động server, mở terminal khác trong cùng thư mục dự án.
+
+```bash
+./bin/simulator --host 127.0.0.1 --port 9000
+```
+
+`--host` nhận địa chỉ IPv4, mặc định là `127.0.0.1`. `--port` là bắt buộc và nhận số từ 1 đến 65535. Simulator in `Connected to ...` khi kết nối thành công và giữ tiến trình chạy đến khi nhấn `Ctrl+C`. Khi kết nối thất bại, chương trình in địa chỉ, cổng cùng lỗi hệ thống ra `stderr`, đóng socket và thoát với mã `1`. Vòng lặp nhận lệnh và gửi báo cáo đang chờ triển khai.
+
 ## Môi trường và cách chạy demo dự kiến
 
 Trong terminal Ubuntu hoặc WSL, mở thư mục dự án và cài công cụ biên dịch cùng thư viện phát triển SQLite.
