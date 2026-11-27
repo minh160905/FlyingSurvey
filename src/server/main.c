@@ -1,12 +1,89 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <getopt.h>
+#include <poll.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include "../common/frame.h"
+
+static void received_frame(const uint8_t *payload, size_t length, void *context)
+{
+    (void)payload;
+    const int *fd = context;
+    printf("Received frame on fd %d (%zu bytes)\n", *fd, length);
+    fflush(stdout);
+}
+
+static int serve(int listener)
+{
+    enum { MAX_CLIENTS = 64 };
+    struct pollfd sockets[MAX_CLIENTS + 1];
+    struct frame_reader *readers = calloc(MAX_CLIENTS, sizeof(*readers));
+    if (!readers) {
+        perror("server: frame buffers");
+        return EXIT_FAILURE;
+    }
+    sockets[0] = (struct pollfd){.fd = listener, .events = POLLIN};
+    for (int i = 1; i <= MAX_CLIENTS; ++i) {
+        sockets[i] = (struct pollfd){.fd = -1, .events = POLLIN};
+    }
+
+    for (;;) {
+        if (poll(sockets, MAX_CLIENTS + 1, -1) < 0) {
+            if (errno == EINTR) continue;
+            perror("server: poll");
+            break;
+        }
+        if (sockets[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            fprintf(stderr, "server: listener unavailable\n");
+            break;
+        }
+        if (sockets[0].revents & POLLIN) {
+            int fd = accept(listener, NULL, NULL);
+            if (fd >= 0) {
+                int slot = 1;
+                while (slot <= MAX_CLIENTS && sockets[slot].fd >= 0) ++slot;
+                if (slot <= MAX_CLIENTS) {
+                    sockets[slot].fd = fd;
+                    readers[slot - 1].used = 0;
+                } else {
+                    close(fd);
+                }
+            } else if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR &&
+                       errno != ECONNABORTED) {
+                perror("server: accept");
+                break;
+            }
+        }
+
+        for (int i = 1; i <= MAX_CLIENTS; ++i) {
+            if (!sockets[i].revents) continue;
+            struct frame_reader *reader = &readers[i - 1];
+            uint8_t chunk[4096];
+            ssize_t n = recv(sockets[i].fd, chunk, sizeof(chunk), MSG_DONTWAIT);
+            if (n > 0) {
+                if (frame_feed(reader, chunk, (size_t)n, received_frame,
+                               &sockets[i].fd) == 0) continue;
+                fprintf(stderr, "server: invalid frame length on fd %d\n", sockets[i].fd);
+            } else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+                continue;
+            } else if (n == 0 && reader->used) {
+                fprintf(stderr, "server: incomplete frame on fd %d\n", sockets[i].fd);
+            }
+            close(sockets[i].fd);
+            sockets[i].fd = -1;
+        }
+    }
+    for (int i = 1; i <= MAX_CLIENTS; ++i) {
+        if (sockets[i].fd >= 0) close(sockets[i].fd);
+    }
+    free(readers);
+    return EXIT_FAILURE;
+}
 
 int main(int argc, char *argv[])
 {
@@ -54,7 +131,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    int listener = socket(AF_INET, SOCK_STREAM, 0);
+    int listener = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (listener == -1) {
         perror("server: socket");
         return EXIT_FAILURE;
@@ -75,7 +152,7 @@ int main(int argc, char *argv[])
     printf("Listening on %s:%ld\n", host, port);
     fflush(stdout);
 
-    for (;;) {
-        pause();
-    }
+    int status = serve(listener);
+    close(listener);
+    return status;
 }

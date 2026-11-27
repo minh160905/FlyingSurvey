@@ -2,7 +2,7 @@
 
 Flying Survey là hệ thống mô phỏng điều khiển thiết bị bay khảo sát môi trường cho học phần IT4062. Dự án dùng C trên Ubuntu hoặc WSL chạy Ubuntu, TCP socket để trao đổi bản tin, `poll()` để xử lý nhiều kết nối trên server và SQLite để lưu dữ liệu.
 
-Server hiện có thể mở cổng TCP và lắng nghe. Các chức năng xử lý kết nối và demo ba chương trình được mô tả bên dưới theo thiết kế dự kiến.
+Server hiện có thể lắng nghe TCP, nhận và tách khung từ nhiều kết nối. Kịch bản demo bên dưới mô tả các chức năng điều khiển và báo cáo theo thiết kế dự kiến.
 
 ## Ba chương trình
 
@@ -21,9 +21,9 @@ Server hiện có thể mở cổng TCP và lắng nghe. Các chức năng xử 
 
 ## Giao thức TCP và xử lý vào/ra
 
-- Mỗi khung bắt đầu bằng trường độ dài phần thân tính theo byte. Server kiểm tra giới hạn kích thước trước khi chờ hoặc cấp phát cho phần thân.
+- Mỗi khung bắt đầu bằng 4 byte biểu diễn độ dài phần thân theo thứ tự byte mạng (big-endian). Phần thân dài từ 1 đến 16.384 byte. Ví dụ, khung chứa `abc` có dạng hex `00 00 00 03 61 62 63`. Server đóng kết nối gửi độ dài sai ngay khi đọc đủ phần đầu.
+- Server dùng `poll()` và giữ bộ đệm riêng cho tối đa 64 kết nối đồng thời. Mỗi lần nhận đủ một khung, server ghi số byte của phần thân ra terminal. Chạy `make test-frame` để kiểm tra bộ đóng và tách khung.
 - Yêu cầu và phản hồi mang mã yêu cầu (`request_id`). Với lệnh chuyển tiếp, server lưu ánh xạ giữa yêu cầu từ client và xác nhận từ thiết bị để trả về đúng phiên. Báo cáo định kỳ có loại bản tin riêng để server xử lý độc lập với lệnh đang chờ.
-- Server dùng socket không chặn và `poll()`. Mỗi kết nối có bộ đệm nhận để ghép khung bị chia qua nhiều lần `recv()` và tách các khung được nhận cùng lúc.
 - Mỗi kết nối có hàng đợi gửi và lưu vị trí đã gửi trong khung đầu hàng đợi. Server theo dõi `POLLOUT` khi còn dữ liệu và tiếp tục từ byte kế tiếp nếu `send()` chỉ ghi được một phần.
 
 ## Bảng tài khoản SQLite
@@ -123,7 +123,7 @@ Khi kiểm tra giao thức, gửi một khung qua nhiều lần ghi và gửi nh
 
 Chốt đặc tả chung trước khi tách nhánh cho server, client và thiết bị mô phỏng.
 
-- Định nghĩa loại bản tin, trường bắt buộc, cách mã hóa phần thân, số byte và thứ tự byte của trường độ dài, kích thước khung tối đa và quy tắc `request_id`.
+- Định nghĩa loại bản tin, trường bắt buộc, cách mã hóa phần thân và quy tắc `request_id` dựa trên định dạng khung ở trên.
 - Chốt mã thành công và mã lỗi cho dữ liệu sai, phiên không hợp lệ, thiếu quyền, thiết bị ngoại tuyến và hết thời gian chờ xác nhận.
 - Chốt đơn vị đo và định dạng thời gian. Các trường cần thống nhất gồm nhiệt độ, độ ẩm, chỉ số chất lượng không khí, tọa độ GPS, tốc độ, độ cao, năng lượng và quãng đường còn lại.
 - Chốt cách tạo và kết thúc phiên, thời hạn phiên, xử lý khi mất kết nối, quyền theo từng thiết bị và cách server xác thực thiết bị mô phỏng.
